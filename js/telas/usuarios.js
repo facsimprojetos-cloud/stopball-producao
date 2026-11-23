@@ -26,7 +26,7 @@ export async function render(el) {
         <td>${(u.perfis || []).map(p => chip(p, p === 'admin' ? 'acento' : '')).join(' ')}</td>
         <td>${u.ativo ? chip('Ativo', 'ok') : chip('Inativo', 'erro')}</td>
         <td style="white-space:nowrap"><button class="btn peq" data-ed="${u.usuario_id}">Editar</button>
-          ${interno(u.email) ? `<button class="btn peq" data-senha="${u.usuario_id}">Redefinir senha</button>` : ''}
+          <button class="btn peq" data-senha="${u.usuario_id}">Redefinir senha</button>
           ${String(u.email).toLowerCase() !== String(ctx.usuario?.email || '').toLowerCase() ? `<button class="btn peq perigo" data-exc="${u.usuario_id}">Excluir</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
   const recarregar = () => render(el);
   el.querySelector('#novo').onclick = () => form(null, recarregar);
@@ -70,7 +70,7 @@ function form(u, depois) {
         const mail = b.dataset.t === 'mail';
         m.querySelector('#lb-login').firstChild.textContent = mail ? 'E-mail' : 'Usuário';
         m.querySelector('[name=login]').placeholder = mail ? 'nome@gmail.com' : 'ex.: design';
-        m.querySelector('#lb-senha').style.display = mail ? 'none' : '';
+        m.querySelector('#lb-senha').firstChild.textContent = mail ? 'Senha (mín. 6; vazio = 123456)' : 'Senha (mín. 6)';
       });
     },
     botoes: [{ texto: 'Cancelar' }, {
@@ -88,13 +88,14 @@ function form(u, depois) {
         const mail = m.querySelector('#tipo .ativo').dataset.t === 'mail';
         const login = f.login.value.trim();
         if (mail && !login.includes('@')) { toast('Informe um e-mail válido.', 'erro'); return false; }
-        if (!mail && login.includes('@')) { toast('O usuário não pode ter @. Para e-mail, use a aba "E-mail / Google".', 'erro'); return false; }
+        if (!mail && login.includes('@')) { toast('Para entrar com e-mail, use a aba "E-mail / Google".', 'erro'); return false; }
+        if (mail && f.senha.value && f.senha.value.length < 6) { toast('A senha precisa ter pelo menos 6 caracteres.', 'erro'); return false; }
         if (!mail && f.senha.value.length < 6) { toast('A senha precisa ter pelo menos 6 caracteres.', 'erro'); return false; }
-        const { data, error } = await db.rpc('criar_usuario', { p_login: login, p_nome: f.nome.value.trim(), p_perfis: sel, p_senha: mail ? null : f.senha.value });
+        const { data, error } = await db.rpc('criar_usuario', { p_login: login, p_nome: f.nome.value.trim(), p_perfis: sel, p_senha: f.senha.value || null });
         if (error) { toast(msgErro(error), 'erro'); return false; }
         toast(data.interno ? `Usuário "${login.toLowerCase()}" criado. Entra com essa senha.`
           : data.conta_existente ? 'Liberado. Este e-mail já tinha conta: entra com a senha que já usa.'
-          : 'Liberado. A pessoa entra com o e-mail e a senha inicial 123456.', 'ok');
+          : data.senha_padrao ? 'Liberado. A pessoa entra com o e-mail e a senha inicial 123456.' : 'Liberado. A pessoa entra com o e-mail e a senha que você definiu.', 'ok');
         depois();
       }
     }]
