@@ -170,5 +170,7 @@ export function imprimirHtml(html, nome) {
   if (nome) document.title = nome;
   const volta = () => { document.title = tituloAntes; window.removeEventListener('afterprint', volta); };
   window.addEventListener('afterprint', volta);
-  setTimeout(() => window.print(), 300);
+  const imgs = [...area.querySelectorAll('img')].filter(i => !i.complete);
+  Promise.all(imgs.map(i => new Promise(ok => { i.onload = i.onerror = ok; setTimeout(ok, 4000); })))
+    .then(() => setTimeout(() => window.print(), 200));
 }

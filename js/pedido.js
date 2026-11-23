@@ -3,6 +3,8 @@ import { db, ctx, tem } from './estado.js';
 import { BUCKET, PASTA_APPSHEET, AREAS } from './config.js';
 import { h, chip, modal, toast, msgErro, ler, data, dataHora, num, cadastros, limparCache, ativos, opcoes,
   confirmar, imprimirHtml, nomeArquivo, hojeISO } from './util.js';
+import { abrirChecklist, seloChecklist, checklistOk, ehGrid } from './checklist.js';
+export { abrirChecklist, seloChecklist };
 
 export const CAMPOS_LISTA = [
   ['linha', 'Linha'], ['costura', 'Costura'], ['manga', 'Manga'], ['escudos', 'Escudos'], ['tecidos', 'Tecidos'],
@@ -75,6 +77,12 @@ export async function iniciar(pedidos, depois) {
 
 export async function finalizar(pedidos, depois, sugerido = null) {
   const lista = [].concat(pedidos);
+  const semCk = lista.filter(p => ehGrid(p) && !checklistOk(p));
+  if (semCk.length) {
+    toast(semCk.length > 1 ? `${semCk.length} pedidos estão sem o checklist do grid concluído.` : 'Conclua o checklist do grid antes de finalizar o DESIGN-GRID.', 'erro');
+    if (semCk.length === 1) abrirChecklist(semCk[0], depois);
+    return;
+  }
   const c = await cadastros(db);
   const setores = ativos(c.setores).filter(s => s.id !== lista[0].setor_id);
   const grupos = AREAS.map(([k, r]) => [r, setores.filter(s => (s.areas || [])[0] === k)]).filter(([, l]) => l.length);
@@ -165,13 +173,9 @@ export async function abrirPedido(id, depois) {
         ${p.arquivo ? '<button class="btn peq" data-a="arquivo">📄 Abrir PDF do pedido</button>' : '<span class="muted peq">Sem PDF anexado.</span>'}
         ${p.foto ? '<button class="btn peq" data-a="foto">🖼️ Abrir foto</button>' : ''}
       </div>
-      ${design || p.chk_montagem != null || p.validacao_final ? `<h3 style="margin-top:16px">Checklist de design (grid)</h3>
-        <div class="grade g2 peq">
-          <div>${chk(p.chk_montagem)} Montagem: pedido, acabamento, layout, gola, cores, fontes, variáveis e escudos</div>
-          <div>${chk(p.chk_escudos)} Tipos de escudo conferidos</div>
-          <div>${chk(p.chk_ajustes)} Ajustes finais: cores, fontes, nomes, acentos, tamanho da arte</div>
-          <div>Validação final (teste de cor / correção / molde): <b>${h(p.validacao_final || '—')}</b> ${h(p.validacao_obs || '')}</div>
-        </div>` : ''}
+      ${design || p.checklist ? `<h3 style="margin-top:16px">Checklist do grid</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${seloChecklist(p) || chip('Sem checklist')}
+          <button class="btn peq" data-a="checklist">☑ Abrir checklist</button></div>` : ''}
       <h3 style="margin-top:16px">Reposições (${reps.length})</h3>
       ${reps.length ? `<div class="tabela-wrap"><table><thead><tr><th>Descrição</th><th>Perda (kg)</th><th>Cód.</th><th>Status</th><th></th></tr></thead><tbody>
         ${reps.map(r => `<tr><td style="white-space:pre-wrap;max-width:420px">${h(r.descricao || '')}</td><td>${r.perda_kg != null ? num(r.perda_kg, 3) : ''}</td><td>${h(r.codigo || '')}</td>
@@ -194,6 +198,7 @@ export async function abrirPedido(id, depois) {
   m.el.querySelector('[data-a=arquivo]')?.addEventListener('click', () => abrirArquivo(p.arquivo));
   m.el.querySelector('[data-a=foto]')?.addEventListener('click', () => abrirArquivo(p.foto));
   m.el.querySelector('[data-a=repos]').onclick = () => novaReposicao(p, atualizar);
+  m.el.querySelector('[data-a=checklist]')?.addEventListener('click', () => abrirChecklist(p, atualizar));
   m.el.querySelectorAll('[data-real]').forEach(b => b.onclick = async () => {
     const { error } = await db.rpc('realizar_reposicao', { p_id: b.dataset.real });
     if (error) return toast(msgErro(error), 'erro');
@@ -205,7 +210,7 @@ function maisAcoes(p, m, atualizar) {
   const acoes = [
     ['op', '🖨️ Imprimir OP', true],
     ['editar', '✏️ Editar pedido', podeEditar() || tem('design')],
-    ['checklist', '☑️ Checklist de design', tem('design') || podeEditar()],
+    ['checklist', '☑️ Checklist do grid', true],
     ['faccao', '👥 Definir facção', true],
     ['dividir', '➗ Dividir para outra facção (DIV2)', true],
     ['previsao', '📅 Recalcular previsão', podeMover(p) || podeEditar()],
@@ -222,7 +227,7 @@ function maisAcoes(p, m, atualizar) {
     if (k === 'op') return imprimirOP(p);
     m.fechar();
     if (k === 'editar') return formPedido(p, atualizar);
-    if (k === 'checklist') return checklist(p, atualizar);
+    if (k === 'checklist') return abrirChecklist(p, atualizar);
     if (k === 'faccao') return escolherFaccao(p, false, atualizar);
     if (k === 'dividir') return escolherFaccao(p, true, atualizar);
     if (k === 'mover') return moverManual(p, atualizar);
@@ -237,29 +242,6 @@ function maisAcoes(p, m, atualizar) {
       if (error) return toast(msgErro(error), 'erro');
       toast('Pedido excluído.', 'ok'); location.reload();
     }
-  });
-}
-
-function checklist(p, depois) {
-  const sn = (n, v, t) => `<label style="display:block;margin:8px 0"><input type="checkbox" name="${n}" ${v ? 'checked' : ''}> ${t}</label>`;
-  modal({
-    titulo: `Checklist de design · ${p.ordem}`,
-    corpo: `<form id="fk">
-      <h3>Montagem de grid</h3>${sn('m', p.chk_montagem, 'Verificar pedido, acabamento, layout, gola, cores, fontes, variáveis e escudos.')}
-      <h3>Tipos de escudo</h3>${sn('e', p.chk_escudos, 'Confirmar o tipo aplicado e o tratamento correto de cada escudo antes da produção.')}
-      <h3>Ajustes finais</h3>${sn('a', p.chk_ajustes, 'Revisar cores, fontes, nomes, acentos, caracteres e tamanho final da arte.')}
-      <h3>Validação final</h3>
-      <label class="campo">Houve teste de cor, pausa para correção ou ajuste de molde?
-        <select name="v"><option value="">—</option><option ${p.validacao_final === 'NÃO' ? 'selected' : ''}>NÃO</option><option ${p.validacao_final === 'SIM' ? 'selected' : ''}>SIM</option></select></label>
-      <label class="campo">Descrição<textarea name="o">${h(p.validacao_obs || '')}</textarea></label>
-    </form>`,
-    botoes: [{ texto: 'Cancelar' }, { texto: 'Salvar', classe: 'pri', acao: async (m) => {
-      const f = m.querySelector('#fk');
-      const { error } = await db.from('pedidos').update({ chk_montagem: f.m.checked, chk_escudos: f.e.checked, chk_ajustes: f.a.checked,
-        validacao_final: f.v.value || null, validacao_obs: f.o.value.trim() || null }).eq('id', p.id);
-      if (error) { toast(msgErro(error), 'erro'); return false; }
-      toast('Checklist salvo.', 'ok'); depois && depois();
-    } }]
   });
 }
 
@@ -366,19 +348,61 @@ export async function formPedido(p, depois) {
 }
 
 // ---------- OP para impressão (antiga aba SELEÇÃO OP) ----------
-export function imprimirOP(p) {
-  const linha = (r, v) => `<tr><th>${h(r)}</th><td>${v || ''}</td></tr>`;
-  const html = `<div class="op-folha">
-    <div class="op-topo"><div><small>ORDEM DE PRODUÇÃO · STOPBALL</small><h1>${h(p.ordem)}</h1></div>
-      <div class="op-entrega"><small>ENTREGA</small><b>${data(p.data_entrega)}</b></div></div>
-    <table class="op-tab">
-      ${linha('Lote do cliente', h(p.lote))}${linha('Artigo', h(p.artigo))}${linha('Quantidade', `<b>${num(p.qtd)}</b>`)}
-      ${linha('Vendedor', h(p.vendedor))}${linha('Cliente', h(p.cliente))}${linha('Data do pedido', data(p.data_pedido))}
-      ${CAMPOS_LISTA.map(([k, r]) => (p[k] || []).length ? linha(r, h(p[k].join(', '))) : '').join('')}
-      ${linha('Facção', h(p.faccao || ''))}${linha('Setor atual', h(p.setor))}
-    </table>
-    ${p.descricao ? `<div class="op-desc"><small>DESCRIÇÃO</small><div>${h(p.descricao)}</div></div>` : ''}
-    <div class="op-rodape">Impresso em ${dataHora(new Date())}</div>
-  </div>`;
-  imprimirHtml(html, nomeArquivo(['OP', p.ordem, p.lote]));
+// imprimirOPs(lista): uma ou várias OPs; o usuário escolhe 1 ou 2 por folha A4.
+const FLUXO_OP = ['DESIGN', 'CALANDRA', 'CORTE', 'COSTURA', 'REVISÃO', 'EXPEDIÇÃO'];
+
+export function htmlOP(p, compacta) {
+  const espec = CAMPOS_LISTA.filter(([k]) => (p[k] || []).length)
+    .map(([k, r]) => `<div class="op-esp"><small>${h(r)}</small><b>${h(p[k].join(' · '))}</b></div>`).join('');
+  const codigo = p.lote ? `LOTE ${h(p.lote)}` : `#${h(String(p.id).slice(0, 8).toUpperCase())}`;
+  return `<section class="op ${compacta ? 'compacta' : ''}">
+    <header class="op-cab">
+      <img src="img/logo.png" alt="Stopball" class="op-logo">
+      <div class="op-cab-dir"><span class="op-tag">ORDEM DE PRODUÇÃO</span><span class="op-cod">${codigo}</span></div>
+    </header>
+    <div class="op-titulo">
+      <h1>${h(p.ordem)}</h1>
+      <div class="op-sub">${h(p.artigo || '')}${p.dividido ? ' · <b>PEDIDO DIVIDIDO (DIV2)</b>' : ''}</div>
+    </div>
+    <div class="op-tiles">
+      <div class="op-tile destaque"><small>Quantidade</small><b>${num(p.qtd)}</b><span>peças</span></div>
+      <div class="op-tile entrega"><small>Entrega</small><b>${data(p.data_entrega)}</b><span>pedido em ${data(p.data_pedido)}</span></div>
+      <div class="op-tile"><small>Vendedor</small><b class="m">${h(p.vendedor || '—')}</b></div>
+      <div class="op-tile"><small>Cliente</small><b class="m">${h(p.cliente || '—')}</b></div>
+      <div class="op-tile"><small>Facção</small><b class="m">${h(p.faccao || 'A definir')}</b></div>
+    </div>
+    ${espec ? `<div class="op-secao">Especificação</div><div class="op-espec">${espec}</div>` : ''}
+    ${p.descricao ? `<div class="op-secao">Descrição</div><div class="op-desc">${h(p.descricao)}</div>` : ''}
+    ${compacta ? '' : `<div class="op-secao">Acompanhamento</div>
+    <div class="op-fluxo">${FLUXO_OP.map(f => `<div class="op-etapa"><small>${f}</small><span>Data ____/____</span><span>Visto ________</span></div>`).join('')}</div>`}
+    <footer class="op-rod"><span>Setor atual: <b>${h(p.setor || '')}</b></span><span>Impresso em ${dataHora(new Date())} · stopball.gutgestao.com.br</span></footer>
+  </section>`;
 }
+
+export async function imprimirOPs(itens) {
+  let lista = [].concat(itens);
+  if (!lista.length) return toast('Selecione ao menos um pedido.', 'erro');
+  // garante os dados completos (a lista de pedidos traz só algumas colunas)
+  if (lista.some(p => !('linha' in p))) {
+    const ids = lista.map(p => p.id);
+    const completos = await ler(db.from('v_pedidos').select('*').in('id', ids));
+    lista = ids.map(id => completos.find(p => p.id === id)).filter(Boolean);
+  }
+  modal({
+    titulo: lista.length > 1 ? `Imprimir ${lista.length} OPs` : `Imprimir OP · ${lista[0].ordem}`,
+    corpo: `<form id="fop" class="grade">
+      <label class="op-opcao"><input type="radio" name="lay" value="1" checked> <span><b>1 OP por folha</b><br><span class="muted peq">Completa, com a régua de acompanhamento por setor.</span></span></label>
+      <label class="op-opcao"><input type="radio" name="lay" value="2"> <span><b>2 OPs por folha</b> (meia folha A4)<br><span class="muted peq">Mais econômica, sem a régua de acompanhamento.</span></span></label>
+      <p class="muted peq" style="margin:0">Dica: na janela de impressão, escolha "Salvar como PDF" para gerar o arquivo.</p>
+    </form>`,
+    botoes: [{ texto: 'Cancelar' }, { texto: '🖨 Imprimir', classe: 'pri', acao: (m) => {
+      const duas = m.querySelector('[name=lay]:checked').value === '2';
+      const ops = lista.map(p => htmlOP(p, duas));
+      const paginas = [];
+      for (let i = 0; i < ops.length; i += duas ? 2 : 1) paginas.push(`<div class="op-pagina ${duas ? 'duas' : ''}">${ops.slice(i, i + (duas ? 2 : 1)).join('')}</div>`);
+      const nome = lista.length > 1 ? nomeArquivo(['OPs Stopball', `${lista.length} pedidos`, hojeISO()]) : nomeArquivo(['OP', lista[0].ordem, lista[0].lote]);
+      imprimirHtml(paginas.join(''), nome);
+    } }]
+  });
+}
+export const imprimirOP = (p) => imprimirOPs([p]);

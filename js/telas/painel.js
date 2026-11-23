@@ -2,7 +2,7 @@
 import { db, ctx } from '../estado.js';
 import { AREAS } from '../config.js';
 import { h, chip, ler, num, data, toast } from '../util.js';
-import { abrirPedido, iniciar, finalizar, podeMover, chipPrazo, chipSituacao, resumoEspec, formPedido, podeEditar } from '../pedido.js';
+import { abrirPedido, iniciar, finalizar, podeMover, chipPrazo, chipSituacao, resumoEspec, formPedido, podeEditar, abrirChecklist, seloChecklist, imprimirOPs } from '../pedido.js';
 
 const LIMITE_COLUNA = 150; // cartões por coluna no Kanban (os mais urgentes primeiro)
 const pref = {
@@ -74,11 +74,12 @@ export async function render(el) {
           </div>
           <div class="det">${h(resumoEspec(p))}</div>
           ${p.faccao ? `<div class="det">Facção: <b>${h(p.faccao)}</b>${p.dividido ? ' (DIV2)' : ''}</div>` : ''}
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${chipSituacao(p)} ${chipPrazo(p)} ${p.reposicoes_pendentes ? chip(p.reposicoes_pendentes + ' reposição', 'alerta') : ''}</div>
-          ${podeMover(p) ? `<div class="acoes-card">${p.inicio_setor
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${chipSituacao(p)} ${chipPrazo(p)} ${seloChecklist(p)} ${p.reposicoes_pendentes ? chip(p.reposicoes_pendentes + ' reposição', 'alerta') : ''}</div>
+          ${p.setor === 'DESIGN-GRID' || podeMover(p) ? `<div class="acoes-card">${p.setor === 'DESIGN-GRID' ? `<button class="btn peq ck-bt ${p.checklist_concluido_em ? 'ok' : ''}" data-ck="${p.id}">${p.checklist_concluido_em ? '☑' : '☐'} Checklist</button>` : ''}${!podeMover(p) ? '' : p.inicio_setor
             ? `<button class="btn peq pri" data-fin="${p.id}">✔ Finalizar</button>`
             : `<button class="btn peq pri" data-ini="${p.id}">▶ Iniciar</button>`}</div>` : ''}
         </div>`).join('')}</div>`).join('');
+    box.querySelectorAll('[data-ck]').forEach(b => b.onclick = (e) => { e.stopPropagation(); abrirChecklist(achar(b.dataset.ck), () => desenhar()); });
     const achar = (id) => pedidos.find(p => p.id === id);
     box.querySelectorAll('.pedido-card').forEach(c => c.onclick = (e) => { if (!e.target.closest('button,input,label.sel')) abrirPedido(c.dataset.id, recarregar); });
     box.querySelectorAll('[data-ini]').forEach(b => b.onclick = () => iniciar(achar(b.dataset.ini), recarregar));
@@ -88,9 +89,11 @@ export async function render(el) {
       const sel = [...box.querySelectorAll('[data-sel]:checked')].map(i => achar(i.dataset.sel));
       const ini = sel.filter(p => !p.inicio_setor), fin = sel.filter(p => p.inicio_setor);
       lote.innerHTML = (ini.length ? `<button class="btn" id="l-ini">▶ Iniciar ${ini.length}</button>` : '') +
-        (fin.length ? `<button class="btn" id="l-fin">✔ Finalizar ${fin.length}</button>` : '');
+        (fin.length ? `<button class="btn" id="l-fin">✔ Finalizar ${fin.length}</button>` : '') +
+        (sel.length ? `<button class="btn" id="l-op">🖨 ${sel.length} OP(s)</button>` : '');
       lote.querySelector('#l-ini')?.addEventListener('click', () => iniciar(ini, recarregar));
       lote.querySelector('#l-fin')?.addEventListener('click', () => finalizar(fin, recarregar));
+      lote.querySelector('#l-op')?.addEventListener('click', () => imprimirOPs(sel));
     };
     box.querySelectorAll('[data-sel]').forEach(i => i.onchange = atualizarLote);
     atualizarLote();
@@ -115,6 +118,7 @@ async function renderKanban(el, setores, recarregar) {
       <div class="det">${h(p.vendedor || 'Sem vendedor')}${p.faccao ? ' · ' + h(p.faccao) : ''}${p.dividido ? ' (DIV2)' : ''}</div>
       <div class="rod">${p.inicio_setor ? chip('▶ ' + (p.operador || 'em andamento'), 'info') : ''} ${chipPrazo(p)}
         ${p.reposicoes_pendentes ? chip('♻ ' + p.reposicoes_pendentes, 'alerta') : ''}
+        ${p.setor === 'DESIGN-GRID' ? `<button class="btn peq ck-bt ${p.checklist_concluido_em ? 'ok' : ''}" data-ck="${p.id}" title="Abrir checklist do grid">${p.checklist_concluido_em ? '☑' : '☐'} Checklist</button>` : ''}
         ${mover ? (p.inicio_setor ? `<button class="btn peq pri" data-fin="${p.id}">✔</button>` : `<button class="btn peq" data-ini="${p.id}">▶ Iniciar</button>`) : ''}</div>
     </div>`;
   }
@@ -133,6 +137,7 @@ async function renderKanban(el, setores, recarregar) {
     box.querySelectorAll('.kcard').forEach(c => c.onclick = (e) => { if (!e.target.closest('button')) abrirPedido(c.dataset.id, recarregar); });
     box.querySelectorAll('[data-ini]').forEach(b => b.onclick = () => iniciar(achar(b.dataset.ini), recarregar));
     box.querySelectorAll('[data-fin]').forEach(b => b.onclick = () => finalizar(achar(b.dataset.fin), recarregar));
+    box.querySelectorAll('[data-ck]').forEach(b => b.onclick = (e) => { e.stopPropagation(); abrirChecklist(achar(b.dataset.ck), () => desenhar()); });
 
     // arrastar: só pedidos em andamento (o fim do setor gera o apontamento)
     let arrastando = null;

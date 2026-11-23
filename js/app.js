@@ -1,7 +1,7 @@
 import { EMPRESA, DOMINIO_INTERNO, LOGIN_GOOGLE } from './config.js';
 import { db, ctx, tem } from './estado.js';
 // Versão publicada: muda a cada atualização para o navegador não usar telas antigas do cache
-const VERSAO = '202611231620'; // atualizar a cada publicação
+const VERSAO = '202611231650'; // atualizar a cada publicação
 import { h, toast, modal } from './util.js';
 
 // ---------- Preferências da tela (guardadas neste navegador) ----------
@@ -47,10 +47,10 @@ function montarLayout() {
     itens += `<a href="${r.hash}" data-hash="${r.hash}" title="${h(r.nome)}"><span class="ico">${r.ico}</span><span class="txt">${h(r.nome)}</span></a>`;
   }
   app.innerHTML = `
-    <div class="topo-mobile"><button id="abre-menu" aria-label="Abrir menu">☰</button><span class="t">${h(EMPRESA)}</span></div>
+    <div class="topo-mobile"><button id="abre-menu" aria-label="Abrir menu">☰</button><img src="img/logo.png" alt="${h(EMPRESA)}" style="height:26px"></div>
     <div class="layout ${pref.get('menu', 'aberto') === 'recolhido' ? 'recolhido' : ''}" id="layout">
       <aside class="lateral" id="lateral">
-        <div class="marca"><span class="txt">${h(EMPRESA)}<small>Gestão da produção</small></span><button class="recolher" id="recolher" title="Recolher / expandir o menu" aria-label="Recolher menu">☰</button></div>
+        <div class="marca"><span class="txt"><img src="img/logo.png" alt="${h(EMPRESA)}" class="logo-menu"><small>Gestão da produção</small></span><img src="img/logo-s.png" alt="" class="logo-mini"><button class="recolher" id="recolher" title="Recolher / expandir o menu" aria-label="Recolher menu">☰</button></div>
         <nav class="menu">${itens}</nav>
         <div class="usuario-box">
           <div class="nome">${h(ctx.nome)}</div>
@@ -121,7 +121,7 @@ function telaLogin(msg = '', tipo = 'erro') {
   const app = document.getElementById('app');
   app.innerHTML = `
     <div class="login"><div class="card">
-      <div class="marca-login">${h(EMPRESA)}</div>
+      <div class="marca-login"><img src="img/logo-escuro.png" alt="${h(EMPRESA)}" style="height:72px;max-width:100%"></div>
       <div class="sub">Gestão da produção</div>
       ${msg ? `<div class="${tipo}-box">${h(msg)}</div>` : ''}
       ${LOGIN_GOOGLE ? `<button class="btn" type="button" id="google" style="width:100%;margin-bottom:12px">
@@ -182,7 +182,7 @@ function telaNovaSenha(msg = '') {
   const app = document.getElementById('app');
   app.innerHTML = `
     <div class="login"><div class="card">
-      <div class="marca-login">${h(EMPRESA)}</div>
+      <div class="marca-login"><img src="img/logo-escuro.png" alt="${h(EMPRESA)}" style="height:72px;max-width:100%"></div>
       <div class="sub">Criar nova senha</div>
       ${msg ? `<div class="erro-box">${h(msg)}</div>` : ''}
       <form id="f-nova" class="grade">${CAMPOS_NOVA_SENHA}
@@ -227,7 +227,7 @@ function telaSemAcesso(status, email) {
   const app = document.getElementById('app');
   app.innerHTML = `
     <div class="login"><div class="card">
-      <div class="marca-login">${h(EMPRESA)}</div>
+      <div class="marca-login"><img src="img/logo-escuro.png" alt="${h(EMPRESA)}" style="height:72px;max-width:100%"></div>
       <div class="sub">${h(email)}</div>
       ${status.usuario && !status.usuario.ativo
         ? `<div class="erro-box">Seu acesso está desativado. Fale com o administrador.</div>`

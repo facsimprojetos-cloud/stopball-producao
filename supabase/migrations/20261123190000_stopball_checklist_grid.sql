@@ -1,0 +1,5 @@
+-- Checklist do DESIGN-GRID (aplicada no Supabase como stopball_04_checklist_grid).
+-- Colunas pedidos.checklist / checklist_concluido_em / checklist_concluido_por;
+-- função stopball.salvar_checklist(p_pedido, p_checklist, p_concluir);
+-- stopball.finalizar_setor e stopball.mover_sem_apontamento recusam tirar do DESIGN-GRID sem checklist concluído
+-- (mover sem apontamento: admin pode); view v_pedidos recriada para incluir as colunas novas.
