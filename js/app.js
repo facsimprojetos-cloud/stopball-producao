@@ -1,7 +1,7 @@
 import { EMPRESA, DOMINIO_INTERNO, LOGIN_GOOGLE } from './config.js';
 import { db, ctx, tem } from './estado.js';
 // Versão publicada: muda a cada atualização para o navegador não usar telas antigas do cache
-const VERSAO = '202611231800'; // atualizar a cada publicação
+const VERSAO = '202611231805'; // atualizar a cada publicação
 import { h, toast, modal } from './util.js';
 
 // ---------- Preferências da tela (guardadas neste navegador) ----------
