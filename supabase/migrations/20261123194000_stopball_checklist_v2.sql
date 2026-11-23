@@ -1,0 +1,2 @@
+-- Checklist de Montagem do Grid v2 (aplicada como stopball_05_checklist_v2):
+-- stopball.checklist_completo(jsonb) confere os 11 itens; salvar_checklist recusa concluir incompleto.
