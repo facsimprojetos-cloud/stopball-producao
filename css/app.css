@@ -323,3 +323,39 @@ html[data-tema="escuro"] .ckg-yn button.on.s{color:#fbbf24} html[data-tema="escu
 .marca-login{display:flex;justify-content:center}
 html[data-tema="escuro"] .marca-login img{content:url(../img/logo.png)}
 .layout.recolhido .marca{flex-direction:column;align-items:center;gap:6px}
+.kcard .kop{font-size:.68rem;font-weight:800;color:var(--sub);letter-spacing:.06em}
+
+/* ===== OP: QR na versão grande ===== */
+.op-titulo-linha{display:flex;align-items:center;justify-content:space-between;gap:6mm}
+.op-qr{flex:none;width:24mm;height:24mm}
+.op-qr svg{width:100%;height:100%;display:block}
+.op.compacta .op-qr{width:19mm;height:19mm}
+
+/* ===== OP pequena (1/4 de folha A4, 4 por página) ===== */
+.op-pagina.quatro{padding:0;display:grid;grid-template-columns:105mm 105mm;grid-template-rows:148.5mm 148.5mm;gap:0}
+.opm{width:105mm;height:148.5mm;padding:6mm;display:flex;flex-direction:column;gap:2.6mm;overflow:hidden;outline:1px dashed #aaa;outline-offset:-.5px;font-family:Montserrat,Arial,sans-serif;color:var(--op-preto);background:#fff}
+.opm-cab{display:flex;align-items:center;justify-content:space-between;background:var(--op-preto);border-radius:2.5mm;padding:2.2mm 3.5mm;position:relative;overflow:hidden}
+.opm-cab::after{content:"";position:absolute;right:-8mm;top:0;bottom:0;width:36mm;background:var(--op-verde);transform:skewX(-20deg)}
+.opm-cab img{height:8.5mm;position:relative;z-index:1}
+.opm-num{position:relative;z-index:1;display:flex;align-items:baseline;gap:1.5mm;color:var(--op-preto)}
+.opm-num small{font-size:7pt;font-weight:900;letter-spacing:.14em}
+.opm-num b{font-size:17pt;font-weight:900;letter-spacing:.02em}
+.opm-titulo h1{font-size:12.5pt;font-weight:900;line-height:1.08;margin:0;text-transform:uppercase;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.opm-titulo div{font-size:7pt;font-weight:700;color:var(--op-cinza);text-transform:uppercase;letter-spacing:.04em;margin-top:.8mm}
+.opm-meio{display:flex;gap:3mm;align-items:stretch}
+.opm-qr{flex:none;width:30mm;display:flex;flex-direction:column;align-items:center;gap:1mm}
+.opm-qr svg{width:30mm;height:30mm;display:block}
+.opm-qr span{font-size:7pt;font-weight:900;letter-spacing:.2em}
+.opm-dados{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1.6mm;min-width:0}
+.opm-dados > div{border-radius:2mm;padding:1.5mm 2mm;min-width:0;border:1px solid var(--op-linha)}
+.opm-dados small{display:block;font-size:5.6pt;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--op-cinza)}
+.opm-qtd{background:var(--op-preto);border-color:var(--op-preto)!important;color:#fff}.opm-qtd small{color:var(--op-verde)}
+.opm-ent{background:var(--op-verde);border-color:var(--op-verde)!important}.opm-ent small{color:#3b4a00}
+.opm-qtd b,.opm-ent b{font-size:12pt;font-weight:900;line-height:1.1}
+.opm-l b{font-size:7.5pt;font-weight:800;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opm-espec{display:grid;grid-template-columns:1fr 1fr;gap:1.2mm}
+.opm-espec div{background:var(--op-fundo);border-radius:1.6mm;padding:1mm 2mm;min-width:0}
+.opm-espec small{display:block;font-size:5.4pt;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--op-cinza)}
+.opm-espec b{font-size:7.2pt;font-weight:800;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opm-desc{flex:1 1 auto;min-height:0;overflow:hidden;border-left:1.4mm solid var(--op-verde);background:var(--op-fundo);border-radius:0 2mm 2mm 0;padding:1.6mm 2.4mm;font-size:7pt;line-height:1.3;white-space:pre-wrap}
+.opm-rod{margin-top:auto;display:flex;justify-content:space-between;gap:2mm;font-size:5.8pt;color:var(--op-cinza);border-top:1px solid var(--op-linha);padding-top:1.2mm}

@@ -13,7 +13,7 @@ const estado = { area: null, setor: null, busca: '', vista: pref.get('vista', 'k
 
 const filtrar = (lista) => {
   const q = estado.busca.trim().toLowerCase();
-  return q ? lista.filter(p => [p.ordem, p.cliente, p.artigo, p.lote, p.vendedor, p.faccao, p.operador]
+  return q ? lista.filter(p => [String(p.numero), p.ordem, p.cliente, p.artigo, p.lote, p.vendedor, p.faccao, p.operador]
     .some(x => String(x || '').toLowerCase().includes(q))) : lista;
 };
 
@@ -113,6 +113,7 @@ async function renderKanban(el, setores, recarregar) {
   function cartao(p) {
     const mover = podeMover(p);
     return `<div class="kcard ${p.inicio_setor ? 'andamento' : ''} ${p.prazo_status === 'ATRASADO' ? 'atrasado' : ''}" data-id="${p.id}" ${mover && p.inicio_setor ? 'draggable="true"' : ''}>
+      <div class="kop">OP ${String(p.numero).padStart(5, '0')}</div>
       <div class="tit">${h(p.ordem)}${p.lote ? ` <span class="muted">· ${h(p.lote)}</span>` : ''} ${p.outros_da_ordem ? '<span title="Há outros pedidos desta ordem em aberto">⚠️</span>' : ''}</div>
       <div class="det">${h(p.artigo || '')} · <b>${num(p.qtd)}</b> pç · entrega ${data(p.data_entrega)}</div>
       <div class="det">${h(p.vendedor || 'Sem vendedor')}${p.faccao ? ' · ' + h(p.faccao) : ''}${p.dividido ? ' (DIV2)' : ''}</div>

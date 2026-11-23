@@ -1,7 +1,7 @@
 import { EMPRESA, DOMINIO_INTERNO, LOGIN_GOOGLE } from './config.js';
 import { db, ctx, tem } from './estado.js';
 // Versão publicada: muda a cada atualização para o navegador não usar telas antigas do cache
-const VERSAO = '202611231740'; // atualizar a cada publicação
+const VERSAO = '202611231800'; // atualizar a cada publicação
 import { h, toast, modal } from './util.js';
 
 // ---------- Preferências da tela (guardadas neste navegador) ----------
@@ -23,6 +23,7 @@ const ROTAS = [
   { hash: '#/pedidos', nome: 'Pedidos', ico: '📋', modulo: 'pedidos' },
   { hash: '#/reposicoes', nome: 'Reposições', ico: '♻️', modulo: 'reposicoes' },
   { hash: '#/historico', nome: 'Histórico e tempos', ico: '⏱️', modulo: 'historico' },
+  { hash: '#/p/', nome: 'Abrir OP', ico: '🔎', modulo: 'abrir', menu: false, marca: '#/pedidos' },
   { grupo: 'Gestão' },
   { hash: '#/cadastros', nome: 'Cadastros', ico: '🗂️', modulo: 'cadastros', perfil: 'admin' },
   { hash: '#/usuarios', nome: 'Usuários', ico: '👥', modulo: 'usuarios', perfil: 'admin' },

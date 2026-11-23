@@ -1,0 +1,3 @@
+-- Número da OP (aplicada como stopball_07_numero_op): pedidos.numero sequencial e único
+-- (sequence stopball.pedidos_numero_seq; histórico numerado por data do pedido), view v_pedidos recriada.
+-- stopball_import.sincronizar preserva o número dos pedidos importados ao reimportar.

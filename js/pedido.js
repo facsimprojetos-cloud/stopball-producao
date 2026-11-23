@@ -2,7 +2,7 @@
 import { db, ctx, tem } from './estado.js';
 import { BUCKET, PASTA_APPSHEET, AREAS } from './config.js';
 import { h, chip, modal, toast, msgErro, ler, data, dataHora, num, cadastros, limparCache, ativos, opcoes,
-  confirmar, imprimirHtml, nomeArquivo, hojeISO } from './util.js';
+  confirmar, imprimirHtml, nomeArquivo, hojeISO, qrSvg } from './util.js';
 import { abrirChecklist, seloChecklist, checklistOk, ehGrid } from './checklist.js';
 export { abrirChecklist, seloChecklist };
 
@@ -157,7 +157,7 @@ export async function abrirPedido(id, depois) {
   const design = (p.areas || []).includes('design');
   const chk = (v) => v === true ? '✅' : v === false ? '❌' : '—';
   const m = modal({
-    titulo: `${p.ordem}${p.lote ? ' · lote ' + p.lote : ''}`, largo: true,
+    titulo: `OP ${numOP(p)} · ${p.ordem}${p.lote ? ' · lote ' + p.lote : ''}`, largo: true,
     corpo: `
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${chip(p.setor, 'acento')} ${chipSituacao(p)} ${chipPrazo(p)}
         ${p.dividido ? chip('Dividido (DIV2)', 'info') : ''} ${p.outros_da_ordem ? chip(`+${p.outros_da_ordem} pedido(s) da mesma ordem em aberto`, 'alerta') : ''}</div>
@@ -350,20 +350,45 @@ export async function formPedido(p, depois) {
 // ---------- OP para impressão (antiga aba SELEÇÃO OP) ----------
 // imprimirOPs(lista): uma ou várias OPs; o usuário escolhe 1 ou 2 por folha A4.
 const FLUXO_OP = ['DESIGN', 'CALANDRA', 'CORTE', 'COSTURA', 'REVISÃO', 'EXPEDIÇÃO'];
+export const numOP = (p) => String(p.numero ?? '').padStart(5, '0');
+const linkOP = (p) => `${location.origin}/#/p/${p.numero}`;
+
+// OP pequena: 1/4 de folha A4 (105 × 148 mm), com QR Code que abre o pedido no app
+export function htmlOPMini(p) {
+  const espec = [['Linha', p.linha], ['Gola', p.gola], ['Tecido', p.tecidos], ['Escudo', p.escudos], ['Manga', p.manga], ['Costura', p.costura], ['Meião', p.cor_meiao]]
+    .filter(([, v]) => (v || []).length).slice(0, 6)
+    .map(([r, v]) => `<div><small>${r}</small><b>${h(v.join(' · '))}</b></div>`).join('');
+  return `<section class="opm">
+    <header class="opm-cab"><img src="img/logo.png" alt="Stopball"><div class="opm-num"><small>OP</small><b>${numOP(p)}</b></div></header>
+    <div class="opm-titulo"><h1>${h(p.ordem)}</h1><div>${h(p.artigo || '')}${p.lote ? ` · LOTE ${h(p.lote)}` : ''}${p.dividido ? ' · DIV2' : ''}</div></div>
+    <div class="opm-meio">
+      <div class="opm-qr">${qrSvg(linkOP(p), 3)}<span>${numOP(p)}</span></div>
+      <div class="opm-dados">
+        <div class="opm-qtd"><small>QTD</small><b>${num(p.qtd)}</b></div>
+        <div class="opm-ent"><small>ENTREGA</small><b>${data(p.data_entrega)}</b></div>
+        <div class="opm-l"><small>Vendedor</small><b>${h(p.vendedor || '—')}</b></div>
+        <div class="opm-l"><small>Facção</small><b>${h(p.faccao || 'A definir')}</b></div>
+      </div>
+    </div>
+    ${espec ? `<div class="opm-espec">${espec}</div>` : ''}
+    ${p.descricao ? `<div class="opm-desc">${h(p.descricao)}</div>` : ''}
+    <footer class="opm-rod"><span>${h(p.cliente || '')}</span><span>${dataHora(new Date())}</span></footer>
+  </section>`;
+}
 
 export function htmlOP(p, compacta) {
   const espec = CAMPOS_LISTA.filter(([k]) => (p[k] || []).length)
     .map(([k, r]) => `<div class="op-esp"><small>${h(r)}</small><b>${h(p[k].join(' · '))}</b></div>`).join('');
-  const codigo = p.lote ? `LOTE ${h(p.lote)}` : `#${h(String(p.id).slice(0, 8).toUpperCase())}`;
+  const codigo = `OP ${numOP(p)}`;
   return `<section class="op ${compacta ? 'compacta' : ''}">
     <header class="op-cab">
       <img src="img/logo.png" alt="Stopball" class="op-logo">
       <div class="op-cab-dir"><span class="op-tag">ORDEM DE PRODUÇÃO</span><span class="op-cod">${codigo}</span></div>
     </header>
-    <div class="op-titulo">
+    <div class="op-titulo-linha"><div class="op-titulo">
       <h1>${h(p.ordem)}</h1>
-      <div class="op-sub">${h(p.artigo || '')}${p.dividido ? ' · <b>PEDIDO DIVIDIDO (DIV2)</b>' : ''}</div>
-    </div>
+      <div class="op-sub">${h(p.artigo || '')}${p.lote ? ` · LOTE ${h(p.lote)}` : ''}${p.dividido ? ' · <b>PEDIDO DIVIDIDO (DIV2)</b>' : ''}</div>
+    </div><div class="op-qr">${qrSvg(linkOP(p), 3)}</div></div>
     <div class="op-tiles">
       <div class="op-tile destaque"><small>Quantidade</small><b>${num(p.qtd)}</b><span>peças</span></div>
       <div class="op-tile entrega"><small>Entrega</small><b>${data(p.data_entrega)}</b><span>pedido em ${data(p.data_pedido)}</span></div>
@@ -392,16 +417,18 @@ export async function imprimirOPs(itens) {
   modal({
     titulo: lista.length > 1 ? `Imprimir ${lista.length} OPs` : `Imprimir OP · ${lista[0].ordem}`,
     corpo: `<form id="fop" class="grade">
-      <label class="op-opcao"><input type="radio" name="lay" value="1" checked> <span><b>1 OP por folha</b><br><span class="muted peq">Completa, com a régua de acompanhamento por setor.</span></span></label>
-      <label class="op-opcao"><input type="radio" name="lay" value="2"> <span><b>2 OPs por folha</b> (meia folha A4)<br><span class="muted peq">Mais econômica, sem a régua de acompanhamento.</span></span></label>
+      <label class="op-opcao"><input type="radio" name="lay" value="4" checked> <span><b>OP pequena com QR Code</b> (4 por folha A4)<br><span class="muted peq">1/4 de folha, com o número da OP e o QR Code que abre o pedido no app. Linha tracejada para recortar.</span></span></label>
+      <label class="op-opcao"><input type="radio" name="lay" value="2"> <span><b>Meia folha</b> (2 por folha A4)<br><span class="muted peq">Mais completa, sem a régua de acompanhamento.</span></span></label>
+      <label class="op-opcao"><input type="radio" name="lay" value="1"> <span><b>Folha inteira</b><br><span class="muted peq">Completa, com a régua de acompanhamento por setor e campo de observações.</span></span></label>
       <p class="muted peq" style="margin:0">Dica: na janela de impressão, escolha "Salvar como PDF" para gerar o arquivo.</p>
     </form>`,
     botoes: [{ texto: 'Cancelar' }, { texto: '🖨 Imprimir', classe: 'pri', acao: (m) => {
-      const duas = m.querySelector('[name=lay]:checked').value === '2';
-      const ops = lista.map(p => htmlOP(p, duas));
+      const lay = Number(m.querySelector('[name=lay]:checked').value);
+      const ops = lista.map(p => lay === 4 ? htmlOPMini(p) : htmlOP(p, lay === 2));
+      const classe = { 1: '', 2: 'duas', 4: 'quatro' }[lay];
       const paginas = [];
-      for (let i = 0; i < ops.length; i += duas ? 2 : 1) paginas.push(`<div class="op-pagina ${duas ? 'duas' : ''}">${ops.slice(i, i + (duas ? 2 : 1)).join('')}</div>`);
-      const nome = lista.length > 1 ? nomeArquivo(['OPs Stopball', `${lista.length} pedidos`, hojeISO()]) : nomeArquivo(['OP', lista[0].ordem, lista[0].lote]);
+      for (let i = 0; i < ops.length; i += lay) paginas.push(`<div class="op-pagina ${classe}">${ops.slice(i, i + lay).join('')}</div>`);
+      const nome = lista.length > 1 ? nomeArquivo(['OPs Stopball', `${lista.length} pedidos`, hojeISO()]) : nomeArquivo(['OP', numOP(lista[0]), lista[0].ordem]);
       imprimirHtml(paginas.join(''), nome);
     } }]
   });
