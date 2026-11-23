@@ -1,8 +1,16 @@
 import { EMPRESA, DOMINIO_INTERNO, LOGIN_GOOGLE } from './config.js';
 import { db, ctx, tem } from './estado.js';
 // Versão publicada: muda a cada atualização para o navegador não usar telas antigas do cache
-const VERSAO = '202611231230'; // atualizar a cada publicação
+const VERSAO = '202611231620'; // atualizar a cada publicação
 import { h, toast, modal } from './util.js';
+
+// ---------- Preferências da tela (guardadas neste navegador) ----------
+const pref = {
+  get(k, padrao) { try { return localStorage.getItem('stopball.' + k) ?? padrao; } catch (_) { return padrao; } },
+  set(k, v) { try { localStorage.setItem('stopball.' + k, v); } catch (_) { /* sem armazenamento */ } },
+};
+function aplicarTema(t) { document.documentElement.dataset.tema = t; pref.set('tema', t); }
+aplicarTema(pref.get('tema', 'claro'));
 
 // Chegou pelo link de "Esqueci minha senha" do e-mail?
 let recuperandoSenha = /type=recovery/.test(location.hash);
@@ -36,26 +44,36 @@ function montarLayout() {
     if (r.grupo) { grupo = r.grupo; continue; }
     if (!visiveis.includes(r) || r.menu === false) continue;
     if (grupo) { itens += `<div class="grupo">${h(grupo)}</div>`; grupo = null; }
-    itens += `<a href="${r.hash}" data-hash="${r.hash}"><span class="ico">${r.ico}</span>${h(r.nome)}</a>`;
+    itens += `<a href="${r.hash}" data-hash="${r.hash}" title="${h(r.nome)}"><span class="ico">${r.ico}</span><span class="txt">${h(r.nome)}</span></a>`;
   }
   app.innerHTML = `
     <div class="topo-mobile"><button id="abre-menu" aria-label="Abrir menu">☰</button><span class="t">${h(EMPRESA)}</span></div>
-    <div class="layout">
+    <div class="layout ${pref.get('menu', 'aberto') === 'recolhido' ? 'recolhido' : ''}" id="layout">
       <aside class="lateral" id="lateral">
-        <div class="marca">${h(EMPRESA)}<small>Gestão da produção</small></div>
+        <div class="marca"><span class="txt">${h(EMPRESA)}<small>Gestão da produção</small></span><button class="recolher" id="recolher" title="Recolher / expandir o menu" aria-label="Recolher menu">☰</button></div>
         <nav class="menu">${itens}</nav>
         <div class="usuario-box">
           <div class="nome">${h(ctx.nome)}</div>
           <div class="muted peq">${h(ctx.perfis.join(', '))}</div>
           <div class="acoes" style="display:flex;gap:6px;flex-wrap:wrap">
-            ${ctx.provedor === 'email' ? '<button class="btn peq" id="minha-senha">Minha senha</button>' : ''}
-            <button class="btn peq" id="sair">Sair</button>
+            <button class="btn peq" id="tema" title="Modo claro / noturno">${document.documentElement.dataset.tema === 'escuro' ? '☀️' : '🌙'}</button>
+            ${ctx.provedor === 'email' ? '<button class="btn peq so-aberto" id="minha-senha">Minha senha</button>' : ''}
+            <button class="btn peq" id="sair" title="Sair">⏻<span class="so-aberto"> Sair</span></button>
           </div>
         </div>
       </aside>
       <main class="conteudo" id="conteudo"></main>
     </div>`;
   document.getElementById('minha-senha')?.addEventListener('click', trocarMinhaSenha);
+  document.getElementById('recolher').onclick = () => {
+    const l = document.getElementById('layout');
+    l.classList.toggle('recolhido');
+    pref.set('menu', l.classList.contains('recolhido') ? 'recolhido' : 'aberto');
+  };
+  document.getElementById('tema').onclick = (e) => {
+    const novo = document.documentElement.dataset.tema === 'escuro' ? 'claro' : 'escuro';
+    aplicarTema(novo); e.currentTarget.textContent = novo === 'escuro' ? '☀️' : '🌙';
+  };
   document.getElementById('sair').onclick = async () => { await db.auth.signOut(); location.hash = ''; location.reload(); };
   const lateral = document.getElementById('lateral');
   document.getElementById('abre-menu').onclick = () => {

@@ -73,15 +73,15 @@ export async function iniciar(pedidos, depois) {
   });
 }
 
-export async function finalizar(pedidos, depois) {
+export async function finalizar(pedidos, depois, sugerido = null) {
   const lista = [].concat(pedidos);
   const c = await cadastros(db);
   const setores = ativos(c.setores).filter(s => s.id !== lista[0].setor_id);
   const grupos = AREAS.map(([k, r]) => [r, setores.filter(s => (s.areas || [])[0] === k)]).filter(([, l]) => l.length);
   const soltos = setores.filter(s => !(s.areas || []).length);
   const opts = '<option value="">Escolha o próximo setor…</option>' + grupos.map(([r, l]) =>
-    `<optgroup label="${h(r)}">${l.map(s => `<option value="${s.id}">${h(s.nome)}</option>`).join('')}</optgroup>`).join('') +
-    soltos.map(s => `<option value="${s.id}">${h(s.nome)}</option>`).join('');
+    `<optgroup label="${h(r)}">${l.map(s => `<option value="${s.id}" ${s.id === sugerido ? 'selected' : ''}>${h(s.nome)}</option>`).join('')}</optgroup>`).join('') +
+    soltos.map(s => `<option value="${s.id}" ${s.id === sugerido ? 'selected' : ''}>${h(s.nome)}</option>`).join('');
   modal({
     titulo: lista.length > 1 ? `Finalizar ${lista.length} pedidos` : `Finalizar ${lista[0].setor} · ${lista[0].ordem}`,
     corpo: `<form id="ff" class="grade">
