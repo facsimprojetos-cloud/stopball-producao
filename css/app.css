@@ -176,7 +176,7 @@ table.clicavel tbody tr:hover{background:var(--suave)}
 .op-pagina.duas .op + .op{border-top:1px dashed #999;padding-top:7mm;margin-top:0}
 .op{display:flex;flex-direction:column;gap:4.5mm;flex:1;min-height:0}
 .op-cab{display:flex;align-items:center;justify-content:space-between;background:var(--op-preto);border-radius:4mm;padding:4mm 6mm;position:relative;overflow:hidden}
-.op-cab::after{content:"";position:absolute;right:-12mm;top:0;bottom:0;width:48mm;background:var(--op-verde);transform:skewX(-20deg)}
+.op-cab::after{content:"";position:absolute;right:-14mm;top:0;bottom:0;width:72mm;background:var(--op-verde);transform:skewX(-20deg)}
 .op-logo{height:16mm;width:auto;position:relative;z-index:1}
 .op-cab-dir{position:relative;z-index:1;text-align:right;color:var(--op-preto);display:flex;flex-direction:column;align-items:flex-end;padding-right:2mm}
 .op-tag{font-size:7.5pt;font-weight:800;letter-spacing:.18em}
@@ -209,7 +209,13 @@ table.clicavel tbody tr:hover{background:var(--suave)}
 .op.compacta .op-cab{padding:3mm 5mm}.op.compacta .op-logo{height:11mm}
 .op.compacta .op-titulo h1{font-size:17pt}
 .op.compacta .op-tile b{font-size:13pt}
-.op.compacta .op-desc{font-size:8.5pt;max-height:38mm}
+.op.compacta .op-desc{font-size:8.5pt;flex:1 1 auto;min-height:0;padding:2mm 3mm}
+.op.compacta .op-espec{grid-template-columns:repeat(4,1fr);gap:1.5mm}
+.op.compacta .op-esp{padding:1.2mm 2mm}.op.compacta .op-esp b{font-size:8.5pt}
+.op.compacta .op-tile{padding:2mm 2.5mm}.op.compacta .op-tile b.m{font-size:8.5pt}
+.op.compacta .op-titulo h1{font-size:16pt}.op.compacta .op-sub{font-size:8.5pt;margin-top:.5mm}
+.op-obs{flex:1 1 auto;min-height:20mm;border:1px solid var(--op-linha);border-radius:3mm;margin-top:-2mm;
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent 7.5mm,var(--op-linha) 7.5mm,var(--op-linha) calc(7.5mm + 1px));background-position:0 4mm}
 .op-opcao{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--linha);border-radius:10px;padding:10px;cursor:pointer}
 .op-opcao input{margin-top:4px}
 

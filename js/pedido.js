@@ -374,7 +374,8 @@ export function htmlOP(p, compacta) {
     ${espec ? `<div class="op-secao">Especificação</div><div class="op-espec">${espec}</div>` : ''}
     ${p.descricao ? `<div class="op-secao">Descrição</div><div class="op-desc">${h(p.descricao)}</div>` : ''}
     ${compacta ? '' : `<div class="op-secao">Acompanhamento</div>
-    <div class="op-fluxo">${FLUXO_OP.map(f => `<div class="op-etapa"><small>${f}</small><span>Data ____/____</span><span>Visto ________</span></div>`).join('')}</div>`}
+    <div class="op-fluxo">${FLUXO_OP.map(f => `<div class="op-etapa"><small>${f}</small><span>Data ____/____</span><span>Visto ________</span></div>`).join('')}</div>
+    <div class="op-secao">Observações da produção</div><div class="op-obs"></div>`}
     <footer class="op-rod"><span>Setor atual: <b>${h(p.setor || '')}</b></span><span>Impresso em ${dataHora(new Date())} · stopball.gutgestao.com.br</span></footer>
   </section>`;
 }
