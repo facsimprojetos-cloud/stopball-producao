@@ -19,3 +19,6 @@ export const AREAS = [
   ['bolsas', 'Facção de bolsas'],
   ['acabamento', 'Acabamento'],
 ];
+
+// Login com Google: deixe false enquanto o provedor Google estiver desativado no Supabase.
+export const LOGIN_GOOGLE = false;
